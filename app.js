@@ -141,29 +141,70 @@ document.getElementById('subject-form').addEventListener('submit', e => {
 });
 
 // Metas
+function minutesToHM(mins) {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return { h, m };
+}
+
+function updateGoalExamples() {
+  const dH = parseInt(document.getElementById('goal-daily-h').value) || 0;
+  const dM = parseInt(document.getElementById('goal-daily-m').value) || 0;
+  const wH = parseInt(document.getElementById('goal-weekly-h').value) || 0;
+  const wM = parseInt(document.getElementById('goal-weekly-m').value) || 0;
+  const mH = parseInt(document.getElementById('goal-monthly-h').value) || 0;
+  const mM = parseInt(document.getElementById('goal-monthly-m').value) || 0;
+
+  document.getElementById('ex-daily').textContent = dH || dM ? `= ${formatMinutes(dH * 60 + dM)} por dia` : '';
+  document.getElementById('ex-weekly').textContent = wH || wM ? `= ${formatMinutes(wH * 60 + wM)} por semana` : '';
+  document.getElementById('ex-monthly').textContent = mH || mM ? `= ${formatMinutes(mH * 60 + mM)} por mês` : '';
+}
+
 function loadGoals() {
-  document.getElementById('goal-daily').value = state.goals.daily || '';
-  document.getElementById('goal-weekly').value = state.goals.weekly || '';
-  document.getElementById('goal-monthly').value = state.goals.monthly || '';
+  const d = minutesToHM(state.goals.daily || 0);
+  const w = minutesToHM(state.goals.weekly || 0);
+  const m = minutesToHM(state.goals.monthly || 0);
+
+  document.getElementById('goal-daily-h').value = d.h || '';
+  document.getElementById('goal-daily-m').value = d.m || '';
+  document.getElementById('goal-weekly-h').value = w.h || '';
+  document.getElementById('goal-weekly-m').value = w.m || '';
+  document.getElementById('goal-monthly-h').value = m.h || '';
+  document.getElementById('goal-monthly-m').value = m.m || '';
+
+  updateGoalExamples();
 }
 
 document.getElementById('goals-form').addEventListener('submit', e => {
   e.preventDefault();
+  const dH = parseInt(document.getElementById('goal-daily-h').value) || 0;
+  const dM = parseInt(document.getElementById('goal-daily-m').value) || 0;
+  const wH = parseInt(document.getElementById('goal-weekly-h').value) || 0;
+  const wM = parseInt(document.getElementById('goal-weekly-m').value) || 0;
+  const mH = parseInt(document.getElementById('goal-monthly-h').value) || 0;
+  const mM = parseInt(document.getElementById('goal-monthly-m').value) || 0;
+
   state.goals = {
-    daily: parseInt(document.getElementById('goal-daily').value) || 0,
-    weekly: parseInt(document.getElementById('goal-weekly').value) || 0,
-    monthly: parseInt(document.getElementById('goal-monthly').value) || 0
+    daily: dH * 60 + dM,
+    weekly: wH * 60 + wM,
+    monthly: mH * 60 + mM
   };
   save();
   alert('Metas salvas!');
   renderDashboard();
 });
 
+['goal-daily-h','goal-daily-m','goal-weekly-h','goal-weekly-m','goal-monthly-h','goal-monthly-m'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateGoalExamples);
+});
+
 // Registrar
 document.getElementById('session-form').addEventListener('submit', e => {
   e.preventDefault();
   const subjectId = document.getElementById('session-subject').value;
-  const minutes = parseInt(document.getElementById('session-minutes').value);
+  const hours = parseInt(document.getElementById('session-hours').value) || 0;
+  const mins = parseInt(document.getElementById('session-minutes').value) || 0;
+  const minutes = hours * 60 + mins;
   const notes = document.getElementById('session-notes').value.trim();
   const feeling = document.getElementById('session-feeling').value;
 

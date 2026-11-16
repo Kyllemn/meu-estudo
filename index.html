@@ -103,8 +103,17 @@
           <label>Matéria</label>
           <select id="session-subject" required></select>
 
-          <label>Tempo (minutos)</label>
-          <input type="number" id="session-minutes" min="1" required placeholder="Ex: 45">
+          <label>Quanto tempo estudou?</label>
+          <div class="time-inputs">
+            <div>
+              <input type="number" id="session-hours" min="0" max="12" placeholder="0">
+              <span>horas</span>
+            </div>
+            <div>
+              <input type="number" id="session-minutes" min="0" max="59" placeholder="0">
+              <span>minutos</span>
+            </div>
+          </div>
 
           <label>O que você estudou?</label>
           <textarea id="session-notes" placeholder="Resumo rápido..."></textarea>
@@ -124,16 +133,52 @@
       <section id="metas" class="tab">
         <form id="goals-form" class="card form">
           <h3>Metas de tempo</h3>
-          <p class="hint">Em minutos</p>
+          <p class="hint">Coloque quantas horas e minutos você quer estudar</p>
 
-          <label>Meta Diária</label>
-          <input type="number" id="goal-daily" min="0" placeholder="120">
+          <div class="goal-group">
+            <label>Meta Diária</label>
+            <div class="time-inputs">
+              <div>
+                <input type="number" id="goal-daily-h" min="0" max="24" placeholder="0">
+                <span>horas</span>
+              </div>
+              <div>
+                <input type="number" id="goal-daily-m" min="0" max="59" placeholder="0">
+                <span>minutos</span>
+              </div>
+            </div>
+            <p class="example" id="ex-daily"></p>
+          </div>
 
-          <label>Meta Semanal</label>
-          <input type="number" id="goal-weekly" min="0" placeholder="600">
+          <div class="goal-group">
+            <label>Meta Semanal</label>
+            <div class="time-inputs">
+              <div>
+                <input type="number" id="goal-weekly-h" min="0" placeholder="0">
+                <span>horas</span>
+              </div>
+              <div>
+                <input type="number" id="goal-weekly-m" min="0" max="59" placeholder="0">
+                <span>minutos</span>
+              </div>
+            </div>
+            <p class="example" id="ex-weekly"></p>
+          </div>
 
-          <label>Meta Mensal</label>
-          <input type="number" id="goal-monthly" min="0" placeholder="2400">
+          <div class="goal-group">
+            <label>Meta Mensal</label>
+            <div class="time-inputs">
+              <div>
+                <input type="number" id="goal-monthly-h" min="0" placeholder="0">
+                <span>horas</span>
+              </div>
+              <div>
+                <input type="number" id="goal-monthly-m" min="0" max="59" placeholder="0">
+                <span>minutos</span>
+              </div>
+            </div>
+            <p class="example" id="ex-monthly"></p>
+          </div>
 
           <button type="submit" class="btn-primary">Salvar metas</button>
         </form>

@@ -244,7 +244,35 @@ main { flex: 1; padding: 0 1.1rem 2rem; }
 }
 .session-item:last-child { border-bottom: none; }
 
-.hint { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.5rem; }
+.goal-group {
+  margin-bottom: 1.4rem;
+}
+.time-inputs {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.4rem;
+}
+.time-inputs > div {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.time-inputs input {
+  width: 70px;
+  text-align: center;
+  padding: 0.7rem 0.4rem;
+}
+.time-inputs span {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+.example {
+  font-size: 0.85rem;
+  color: var(--primary-light);
+  margin-top: 0.3rem;
+  min-height: 1.2em;
+}
 
 @media (max-width: 380px) {
   .timer-display { font-size: 4.2rem; }
