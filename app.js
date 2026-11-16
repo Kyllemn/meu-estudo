@@ -398,16 +398,17 @@ function playAlarm() {
 }
 
 function showAlarmModal(title, message, onYes, onNo) {
+  const modal = document.getElementById('alarm-modal');
   document.getElementById('alarm-title').textContent = title;
   document.getElementById('alarm-message').textContent = message;
-  document.getElementById('alarm-modal').classList.remove('hidden');
+  modal.classList.add('show');
   playAlarm();
 
   const yesBtn = document.getElementById('alarm-yes');
   const noBtn = document.getElementById('alarm-no');
 
   const clean = () => {
-    document.getElementById('alarm-modal').classList.add('hidden');
+    modal.classList.remove('show');
     yesBtn.onclick = null;
     noBtn.onclick = null;
   };
@@ -423,8 +424,6 @@ function showAlarmModal(title, message, onYes, onNo) {
 }
 
 function pomodoroFinished() {
-  playAlarm();
-
   if (!state.pomodoro.isBreak) {
     // Fim do foco
     const minutes = parseInt(document.getElementById('focus-time').value) || 25;

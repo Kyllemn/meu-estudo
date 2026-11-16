@@ -278,14 +278,16 @@ main { flex: 1; padding: 0 1.1rem 2rem; }
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.7);
-  display: flex;
+  background: rgba(0,0,0,0.75);
+  display: none;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 999;
   padding: 1.5rem;
 }
-.modal.hidden { display: none; }
+.modal.show {
+  display: flex;
+}
 .modal-content {
   background: var(--surface);
   border-radius: 20px;
