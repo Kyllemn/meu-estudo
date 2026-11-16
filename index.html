@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-version="3">
+<html lang="pt-BR" data-version="4">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -12,16 +12,23 @@
   <meta name="apple-mobile-web-app-title" content="Meu Estudo">
   <meta name="format-detection" content="telephone=no">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
   <div id="app">
     <header>
       <div class="header-left">
         <span class="logo">📚</span>
-        <h1>Meu Estudo</h1>
+        <div class="header-titles">
+          <h1>Meu Estudo</h1>
+          <button type="button" class="project-chip" id="project-chip" aria-label="Trocar de projeto">
+            <span class="subject-dot" id="project-chip-dot"></span>
+            <span id="project-chip-name">Principal</span>
+            <span class="chip-arrow">▾</span>
+          </button>
+        </div>
       </div>
-      <span class="app-version" id="app-version"></span>
+      <button type="button" class="menu-btn" id="menu-btn" aria-label="Menu">☰</button>
     </header>
 
     <nav class="main-nav">
@@ -165,12 +172,49 @@
         <form id="subject-form" class="card form">
           <h3>Nova matéria</h3>
           <input type="text" id="subject-name" required placeholder="Nome da matéria" maxlength="60" aria-label="Nome da matéria">
-          <label for="subject-color">Cor</label>
-          <input type="color" id="subject-color" value="#6366f1">
+          <label>Cor</label>
+          <button type="button" class="color-field" data-for="subject-color">
+            <span class="color-field-swatch"></span>
+            <span>Escolher cor</span>
+          </button>
+          <input type="hidden" id="subject-color" value="#6366f1">
           <button type="submit" class="btn-primary">Adicionar</button>
         </form>
 
+        <p class="hint list-hint">Toque na bolinha colorida para mudar a cor de uma matéria.</p>
         <div id="subjects-list"></div>
+      </section>
+
+      <!-- Menu (Projetos + Zerar dados) -->
+      <section id="menu" class="tab">
+        <div class="card">
+          <h3>📁 Projetos</h3>
+          <p class="hint">Cada projeto tem as próprias matérias, sessões, metas, Pomodoro e dashboard.</p>
+          <div id="projects-list"></div>
+        </div>
+
+        <form id="project-form" class="card form" novalidate>
+          <h3>Novo projeto</h3>
+          <label for="project-name">Nome do concurso</label>
+          <input type="text" id="project-name" maxlength="40" placeholder="Ex: TRT 2026" autocomplete="off">
+          <label>Cor</label>
+          <button type="button" class="color-field" data-for="project-color">
+            <span class="color-field-swatch"></span>
+            <span>Escolher cor</span>
+          </button>
+          <input type="hidden" id="project-color" value="#22c55e">
+          <button type="submit" class="btn-primary" id="project-create">Criar projeto</button>
+          <p class="hint project-limit" id="project-limit"></p>
+        </form>
+
+        <div class="card danger-card">
+          <h3>⚠️ Zerar dados</h3>
+          <p class="hint">Apaga matérias, sessões, metas e Pomodoro. Pede 2 confirmações. Não dá para desfazer.</p>
+          <button type="button" id="reset-current" class="btn-danger">Zerar dados principais</button>
+          <button type="button" id="reset-all" class="btn-danger-outline">Zerar tudo (Principal e projetos)</button>
+        </div>
+
+        <p class="menu-version">Meu Estudo <span id="app-version"></span></p>
       </section>
     </main>
   </div>
@@ -208,9 +252,38 @@
     </div>
   </div>
 
+  <!-- Janela de escolha de cor -->
+  <div id="color-modal" class="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="color-title">
+      <h3 id="color-title">Escolha a cor</h3>
+      <div class="color-grid" id="color-grid"></div>
+      <label class="custom-color">
+        <span>Outra cor:</span>
+        <input type="color" id="color-custom" value="#6366f1">
+      </label>
+      <div class="color-preview">
+        <span class="color-preview-dot" id="color-preview-dot"></span>
+        <span>Cor escolhida</span>
+      </div>
+      <button type="button" id="color-ok" class="btn-primary">OK</button>
+      <button type="button" id="color-cancel" class="btn-link">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- Janela de confirmação (Sim / Não) -->
+  <div id="dialog" class="modal-backdrop dialog-backdrop" hidden>
+    <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="dialog-title" aria-describedby="dialog-message">
+      <h3 id="dialog-title"></h3>
+      <p id="dialog-message" class="dialog-message"></p>
+      <input type="text" id="dialog-input" maxlength="40" autocomplete="off" hidden>
+      <button type="button" id="dialog-yes" class="btn-primary">Sim</button>
+      <button type="button" id="dialog-no" class="btn-secondary full">Não</button>
+    </div>
+  </div>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
-  <script src="app.js?v=3"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>

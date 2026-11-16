@@ -1,15 +1,15 @@
 // Meu Estudo — service worker
-// Ao publicar mudanças, aumente a versão abaixo (v3 -> v4...) junto com o
+// Ao publicar mudanças, aumente a versão abaixo (v4 -> v5...) junto com o
 // APP_VERSION do app.js e o data-version / ?v= do index.html.
-const CACHE_NAME = 'estudo-v3';
+const CACHE_NAME = 'estudo-v4';
 const CHART_URL = 'https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js';
 
 // Caminhos relativos: funcionam no GitHub Pages (usuario.github.io/repositorio/)
 const APP_FILES = [
   './',
   './index.html',
-  './style.css?v=3',
-  './app.js?v=3',
+  './style.css?v=4',
+  './app.js?v=4',
   './manifest.json'
 ];
 

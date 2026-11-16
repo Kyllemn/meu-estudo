@@ -7,7 +7,7 @@
 
 // Versão do app: aparece no topo da tela. Deve ser igual ao data-version do index.html
 // e ao ?v= dos arquivos. Ao publicar mudanças, aumente nos 3 lugares + service-worker.
-const APP_VERSION = '3';
+const APP_VERSION = '4';
 
 // ---------- Utilidades ----------
 // Se um elemento não existir (ex.: HTML antigo em cache), devolve um "elemento falso"
@@ -125,10 +125,44 @@ function normalizeGoals(g) {
   return { daily, weekly: daily * 7, monthly: daily * 30 };
 }
 
+// ---------- Projetos ----------
+// "Principal" usa as chaves antigas do localStorage (seus dados atuais continuam lá).
+// Cada projeto usa chaves próprias: estudo:proj:<id>:<nome>
+const MAX_PROJECTS = 5;
+const SPACE_KEYS = ['subjects', 'sessions', 'goals', 'pomodoroState', 'pomodoroSettings', 'lastSubject'];
+const MAIN_PROJECT = { id: '', name: 'Principal', color: '#7c3aed' };
+
+function loadProjects() {
+  const list = load('estudo:projects', []);
+  if (!Array.isArray(list)) return [];
+  return list
+    .filter(p => p && typeof p.id === 'string' && p.id && typeof p.name === 'string')
+    .slice(0, MAX_PROJECTS)
+    .map(p => ({ id: p.id, name: p.name, color: safeColor(p.color), createdAt: p.createdAt || '' }));
+}
+
+let projects = loadProjects();
+let activeProjectId = load('estudo:activeProject', '');
+if (typeof activeProjectId !== 'string' || !projects.some(p => p.id === activeProjectId)) activeProjectId = '';
+
+function keyFor(projectId, name) {
+  return projectId ? `estudo:proj:${projectId}:${name}` : name;
+}
+function key(name) { return keyFor(activeProjectId, name); }
+
+function getActiveProject() {
+  return projects.find(p => p.id === activeProjectId) || MAIN_PROJECT;
+}
+
+function loadArray(k) {
+  const v = load(k, []);
+  return Array.isArray(v) ? v : [];
+}
+
 const state = {
-  subjects: Array.isArray(load('subjects', [])) ? load('subjects', []) : [],
-  sessions: Array.isArray(load('sessions', [])) ? load('sessions', []) : [],
-  goals: normalizeGoals(load('goals', null)),
+  subjects: loadArray(key('subjects')),
+  sessions: loadArray(key('sessions')),
+  goals: normalizeGoals(load(key('goals'), null)),
   period: 'hoje',
   pomodoro: {
     isRunning: false,     // contando agora
@@ -145,9 +179,9 @@ const P = state.pomodoro;
 
 function save() {
   state.goals = normalizeGoals(state.goals);
-  store('subjects', state.subjects);
-  store('sessions', state.sessions);
-  store('goals', state.goals);
+  store(key('subjects'), state.subjects);
+  store(key('sessions'), state.sessions);
+  store(key('goals'), state.goals);
 }
 
 function addSession(data) {
@@ -195,9 +229,14 @@ function getTotalMinutes(sessions) {
 }
 
 // ---------- Navegação ----------
+let lastTab = 'dashboard';
 function showTab(name) {
+  if (!exists(name)) return;
+  if (name !== 'menu') lastTab = name;
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.id === name));
+  $('menu-btn').classList.toggle('active', name === 'menu');
+  if (name === 'menu') safe(renderProjectUI);
   // o gráfico precisa ser desenhado com a aba visível
   if (name === 'dashboard') safe(() => renderDashboard());
   if (name === 'pomodoro') safe(updatePomodoroUI);
@@ -232,7 +271,7 @@ function renderSubjects() {
   });
 
   // mantém o que estava selecionado; senão usa a última matéria usada (ou a primeira)
-  const last = load('lastSubject', null);
+  const last = load(key('lastSubject'), null);
   const fallbackId = getSubject(last) ? last : (state.subjects[0] ? state.subjects[0].id : '');
   selects.forEach((sel, i) => {
     if (previous[i] && getSubject(previous[i])) sel.value = previous[i];
@@ -244,8 +283,10 @@ function renderSubjects() {
   } else {
     list.innerHTML = state.subjects.map(sub => `
       <div class="subject-item">
-        <div>
-          <span class="subject-dot" style="background:${safeColor(sub.color)}"></span>
+        <div class="subject-main">
+          <button type="button" class="dot-btn" data-color-id="${escapeHTML(sub.id)}" aria-label="Mudar cor de ${escapeHTML(sub.name)}">
+            <span class="subject-dot" style="background:${safeColor(sub.color)}"></span>
+          </button>
           <strong>${escapeHTML(sub.name)}</strong>
         </div>
         <button type="button" class="delete-btn" data-id="${escapeHTML(sub.id)}" aria-label="Remover ${escapeHTML(sub.name)}">🗑️</button>
@@ -254,8 +295,21 @@ function renderSubjects() {
   }
 }
 
-// Um único listener para todos os botões de excluir
+// Um único listener para os botões da lista (mudar cor / excluir)
 $('subjects-list').addEventListener('click', e => {
+  const colorBtn = e.target.closest('.dot-btn');
+  if (colorBtn) {
+    const sub = getSubject(colorBtn.dataset.colorId);
+    if (!sub) return;
+    pickColor(sub.color, color => {
+      sub.color = color;
+      save();
+      renderSubjects();
+      renderDashboard();
+      toast('Cor atualizada ✅');
+    });
+    return;
+  }
   const btn = e.target.closest('.delete-btn');
   if (!btn) return;
   const id = btn.dataset.id;
@@ -284,10 +338,103 @@ $('subject-form').addEventListener('submit', e => {
   state.subjects.push({ id: uid(), name, color: safeColor(color) });
   save();
   e.target.reset();
-  $('subject-color').value = '#6366f1';
+  $('subject-color').value = suggestColor(state.subjects.map(s => s.color));
+  paintColorField('subject-color');
   renderSubjects();
   updatePomodoroUI();
   toast('Matéria adicionada ✅');
+});
+
+// ---------- Escolha de cor (com botão OK) ----------
+// O seletor nativo do iPhone não tem botão OK; este é próprio do app.
+const PALETTE = [
+  '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e',
+  '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1',
+  '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e', '#94a3b8'
+];
+let colorPick = null; // { value, onOk }
+
+function toHex6(c) {
+  c = String(c || '');
+  if (/^#[0-9a-f]{6}$/i.test(c)) return c.toLowerCase();
+  if (/^#[0-9a-f]{3}$/i.test(c)) return ('#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3]).toLowerCase();
+  return '#6366f1';
+}
+
+// Sugere uma cor da paleta que ainda não foi usada
+function suggestColor(used) {
+  const usedSet = new Set((used || []).map(c => toHex6(c)));
+  return PALETTE.find(c => !usedSet.has(c)) || PALETTE[Math.floor(Math.random() * PALETTE.length)];
+}
+
+function pickColor(initial, onOk) {
+  if (!exists('color-modal')) {
+    // plano B (HTML antigo)
+    const c = prompt('Digite a cor (ex: #ff0000)', toHex6(initial));
+    if (c && /^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(c.trim())) onOk(toHex6(c.trim()));
+    return;
+  }
+  colorPick = { value: toHex6(initial), onOk };
+  $('color-grid').innerHTML = PALETTE.map(c =>
+    `<button type="button" class="color-swatch-btn" data-color="${c}" style="background:${c}" aria-label="Cor ${c}"></button>`
+  ).join('');
+  updateColorPreview();
+  $('color-modal').hidden = false;
+}
+
+function updateColorPreview() {
+  if (!colorPick) return;
+  const v = colorPick.value;
+  $('color-preview-dot').style.background = v;
+  $('color-custom').value = v;
+  document.querySelectorAll('.color-swatch-btn').forEach(b => {
+    b.classList.toggle('selected', b.dataset.color === v);
+  });
+}
+
+$('color-grid').addEventListener('click', e => {
+  const b = e.target.closest('.color-swatch-btn');
+  if (!b || !colorPick) return;
+  colorPick.value = b.dataset.color;
+  updateColorPreview();
+});
+
+function onCustomColor() {
+  if (!colorPick) return;
+  colorPick.value = toHex6($('color-custom').value);
+  updateColorPreview();
+}
+$('color-custom').addEventListener('input', onCustomColor);
+$('color-custom').addEventListener('change', onCustomColor);
+
+$('color-ok').addEventListener('click', () => {
+  const pick = colorPick;
+  colorPick = null;
+  $('color-modal').hidden = true;
+  if (pick && pick.onOk) pick.onOk(pick.value);
+});
+
+$('color-cancel').addEventListener('click', () => {
+  colorPick = null;
+  $('color-modal').hidden = true;
+});
+
+// Campo de cor de formulário: botão que mostra a cor + input escondido com o valor
+function paintColorField(inputId) {
+  const btn = document.querySelector(`.color-field[data-for="${inputId}"]`);
+  if (!btn) return;
+  const sw = btn.querySelector('.color-field-swatch');
+  if (sw) sw.style.background = toHex6($(inputId).value);
+}
+
+document.querySelectorAll('.color-field').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const inputId = btn.dataset.for;
+    pickColor($(inputId).value, color => {
+      $(inputId).value = color;
+      paintColorField(inputId);
+    });
+  });
 });
 
 // ---------- Metas (só diária; semana e mês são projeções) ----------
@@ -544,7 +691,7 @@ function getFocusMinutes() { return clampInt($('focus-time').value, 1, 120, 25);
 function getBreakMinutes() { return clampInt($('break-time').value, 1, 30, 5); }
 
 function savePomodoro() {
-  store('pomodoroState', {
+  store(key('pomodoroState'), {
     isRunning: P.isRunning,
     isBreak: P.isBreak,
     started: P.started,
@@ -641,7 +788,7 @@ function startPomodoro() {
       return;
     }
     P.currentSubject = subjectId;
-    store('lastSubject', subjectId);
+    store(key('lastSubject'), subjectId);
     P.isBreak = false;
     P.sessionLength = getFocusMinutes() * 60;
     P.timeLeft = P.sessionLength;
@@ -901,7 +1048,7 @@ $('btn-reset').addEventListener('click', resetPomodoro);
 $('pomodoro-subject').addEventListener('change', updatePomodoroUI);
 
 function savePomodoroSettings() {
-  store('pomodoroSettings', { focus: getFocusMinutes(), brk: getBreakMinutes() });
+  store(key('pomodoroSettings'), { focus: getFocusMinutes(), brk: getBreakMinutes() });
 }
 
 $('focus-time').addEventListener('change', () => {
@@ -926,13 +1073,13 @@ document.addEventListener('visibilitychange', () => {
 });
 
 function restorePomodoro() {
-  const settings = load('pomodoroSettings', null);
-  if (settings && typeof settings === 'object') {
-    $('focus-time').value = clampInt(settings.focus, 1, 120, 25);
-    $('break-time').value = clampInt(settings.brk, 1, 30, 5);
-  }
+  stopTicking();
+  const settings = load(key('pomodoroSettings'), null);
+  const hasSettings = settings && typeof settings === 'object';
+  $('focus-time').value = hasSettings ? clampInt(settings.focus, 1, 120, 25) : 25;
+  $('break-time').value = hasSettings ? clampInt(settings.brk, 1, 30, 5) : 5;
 
-  const saved = load('pomodoroState', null);
+  const saved = load(key('pomodoroState'), null);
   if (!saved || typeof saved !== 'object' || !saved.started) {
     resetPomodoroState();
     return;
@@ -963,9 +1110,314 @@ function restorePomodoro() {
   }
 }
 
+// ---------- Janela de confirmação (Sim / Não) ----------
+let dialogHandlers = null;
+
+function askDialog(opts, onYes, onNo) {
+  const o = Object.assign({ title: '', message: '', yes: 'Sim', no: 'Não', danger: false, input: null }, opts);
+  const hasInput = o.input !== null && o.input !== undefined;
+
+  if (!exists('dialog')) {
+    // plano B (HTML antigo)
+    const text = (o.title ? o.title + '\n\n' : '') + o.message;
+    if (hasInput) {
+      const v = prompt(text, o.input);
+      if (v !== null) { if (onYes) onYes(v); } else if (onNo) onNo();
+    } else if (!o.no) {
+      alert(text); if (onYes) onYes(true);
+    } else if (confirm(text)) { if (onYes) onYes(true); } else if (onNo) onNo();
+    return;
+  }
+
+  $('dialog-title').textContent = o.title;
+  $('dialog-title').hidden = !o.title;
+  $('dialog-message').textContent = o.message;
+  $('dialog-input').hidden = !hasInput;
+  $('dialog-input').value = hasInput ? o.input : '';
+  $('dialog-yes').textContent = o.yes;
+  $('dialog-yes').classList.toggle('danger', !!o.danger);
+  $('dialog-no').textContent = o.no || '';
+  $('dialog-no').hidden = !o.no;
+  dialogHandlers = { onYes, onNo, hasInput };
+  $('dialog').hidden = false;
+  if (hasInput) $('dialog-input').focus();
+}
+
+function closeDialog(answerYes) {
+  const h = dialogHandlers;
+  dialogHandlers = null;
+  $('dialog').hidden = true;
+  if (!h) return;
+  if (answerYes) { if (h.onYes) h.onYes(h.hasInput ? $('dialog-input').value : true); }
+  else if (h.onNo) h.onNo();
+}
+
+$('dialog-yes').addEventListener('click', () => closeDialog(true));
+$('dialog-no').addEventListener('click', () => closeDialog(false));
+$('dialog-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); closeDialog(true); }
+});
+
+// ---------- Projetos: trocar, criar, renomear, excluir ----------
+function saveProjects() {
+  store('estudo:projects', projects);
+  store('estudo:activeProject', activeProjectId);
+}
+
+// Recarrega tudo do projeto ativo
+function loadSpace() {
+  stopTicking();
+  state.subjects = loadArray(key('subjects'));
+  state.sessions = loadArray(key('sessions'));
+  state.goals = normalizeGoals(load(key('goals'), null));
+  ['session-hours', 'session-minutes', 'session-notes'].forEach(id => { $(id).value = ''; });
+  $('session-feeling').value = 'bom';
+  $('pomodoro-subject').value = '';
+  $('session-subject').value = '';
+  safe(renderSubjects);
+  safe(loadGoals);
+  safe(restorePomodoro);
+  safe(() => renderDashboard());
+  safe(updatePomodoroUI);
+  safe(renderProjectUI);
+}
+
+function projectStats(projectId) {
+  const subjects = projectId === activeProjectId ? state.subjects : loadArray(keyFor(projectId, 'subjects'));
+  const sessions = projectId === activeProjectId ? state.sessions : loadArray(keyFor(projectId, 'sessions'));
+  return { subjects: subjects.length, minutes: getTotalMinutes(sessions) };
+}
+
+function renderProjectUI() {
+  const active = getActiveProject();
+  $('project-chip-name').textContent = active.name;
+  $('project-chip-dot').style.background = active.color;
+  $('reset-current').textContent = activeProjectId
+    ? `Zerar dados do projeto "${active.name}"`
+    : 'Zerar dados principais';
+
+  const all = [MAIN_PROJECT].concat(projects);
+  $('projects-list').innerHTML = all.map(p => {
+    const st = projectStats(p.id);
+    const isActive = p.id === activeProjectId;
+    const pid = escapeHTML(p.id);
+    return `
+      <div class="project-item${isActive ? ' active' : ''}">
+        <div class="project-main">
+          ${p.id
+            ? `<button type="button" class="dot-btn" data-action="color" data-id="${pid}" aria-label="Mudar cor de ${escapeHTML(p.name)}"><span class="subject-dot" style="background:${safeColor(p.color)}"></span></button>`
+            : `<span class="dot-btn static"><span class="subject-dot" style="background:${p.color}"></span></span>`}
+          <div class="project-text">
+            <strong>${escapeHTML(p.name)}</strong>${isActive ? ' <span class="badge">atual</span>' : ''}
+            <div class="project-stats">${st.subjects} ${st.subjects === 1 ? 'matéria' : 'matérias'} · ${formatMinutes(st.minutes)} estudados</div>
+          </div>
+        </div>
+        <div class="project-actions">
+          ${isActive ? '' : `<button type="button" class="btn-small" data-action="open" data-id="${pid}">Abrir</button>`}
+          ${p.id ? `<button type="button" class="icon-btn" data-action="rename" data-id="${pid}" aria-label="Renomear ${escapeHTML(p.name)}">✏️</button>
+                     <button type="button" class="icon-btn" data-action="delete" data-id="${pid}" aria-label="Excluir ${escapeHTML(p.name)}">🗑️</button>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  const full = projects.length >= MAX_PROJECTS;
+  $('project-create').disabled = full;
+  $('project-name').disabled = full;
+  $('project-limit').textContent = full
+    ? `Limite de ${MAX_PROJECTS} projetos atingido. Exclua um para criar outro.`
+    : `${projects.length} de ${MAX_PROJECTS} projetos criados.`;
+}
+
+function blockedByPomodoro(actionText) {
+  if (!P.started) return false;
+  askDialog({
+    title: 'Pomodoro em andamento',
+    message: `Pare ou termine o Pomodoro antes de ${actionText}.`,
+    yes: 'Ir para o Pomodoro',
+    no: 'Cancelar'
+  }, () => showTab('pomodoro'));
+  return true;
+}
+
+function switchProject(id) {
+  if (id === activeProjectId) return;
+  if (id && !projects.some(p => p.id === id)) return;
+  if (blockedByPomodoro('trocar de projeto')) return;
+  activeProjectId = id;
+  saveProjects();
+  loadSpace();
+  showTab('dashboard');
+  toast(`Projeto: ${getActiveProject().name}`);
+}
+
+function removeSpaceData(projectId) {
+  SPACE_KEYS.forEach(k => {
+    try { localStorage.removeItem(keyFor(projectId, k)); } catch (e) { /* ignora */ }
+  });
+}
+
+$('projects-list').addEventListener('click', e => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const id = btn.dataset.id || '';
+  const action = btn.dataset.action;
+
+  if (action === 'open') { switchProject(id); return; }
+
+  const proj = projects.find(p => p.id === id);
+  if (!proj) return;
+
+  if (action === 'color') {
+    pickColor(proj.color, color => {
+      proj.color = color;
+      saveProjects();
+      renderProjectUI();
+    });
+  } else if (action === 'rename') {
+    askDialog({ title: 'Renomear projeto', message: 'Novo nome:', input: proj.name, yes: 'Salvar', no: 'Cancelar' }, value => {
+      const name = String(value || '').trim().slice(0, 40);
+      if (!name) { toast('O nome não pode ficar vazio'); return; }
+      if (nameTaken(name, proj.id)) { toast('Já existe um projeto com esse nome'); return; }
+      proj.name = name;
+      saveProjects();
+      renderProjectUI();
+      toast('Projeto renomeado ✅');
+    });
+  } else if (action === 'delete') {
+    if (id === activeProjectId && blockedByPomodoro('excluir este projeto')) return;
+    askDialog({
+      title: 'Excluir projeto',
+      message: `Deseja excluir o projeto "${proj.name}"?`
+    }, () => {
+      askDialog({
+        title: 'Tem certeza?',
+        message: `Todas as matérias, sessões e metas de "${proj.name}" serão apagadas. Não dá para desfazer.`,
+        yes: 'Sim, excluir',
+        danger: true
+      }, () => {
+        removeSpaceData(id);
+        projects = projects.filter(p => p.id !== id);
+        if (activeProjectId === id) {
+          activeProjectId = '';
+          saveProjects();
+          loadSpace();
+        } else {
+          saveProjects();
+          renderProjectUI();
+        }
+        toast('Projeto excluído');
+      });
+    });
+  }
+});
+
+function nameTaken(name, exceptId) {
+  const n = name.toLowerCase();
+  if (n === MAIN_PROJECT.name.toLowerCase()) return true;
+  return projects.some(p => p.id !== exceptId && p.name.toLowerCase() === n);
+}
+
+$('project-form').addEventListener('submit', e => {
+  e.preventDefault();
+  if (projects.length >= MAX_PROJECTS) {
+    toast(`Limite de ${MAX_PROJECTS} projetos atingido`);
+    return;
+  }
+  const name = $('project-name').value.trim().slice(0, 40);
+  if (!name) { toast('Digite o nome do projeto'); return; }
+  if (nameTaken(name)) { toast('Já existe um projeto com esse nome'); return; }
+
+  const proj = { id: 'p' + uid(), name, color: toHex6($('project-color').value), createdAt: new Date().toISOString() };
+  projects.push(proj);
+  saveProjects();
+  $('project-name').value = '';
+  $('project-color').value = suggestColor(projects.map(p => p.color));
+  paintColorField('project-color');
+
+  if (P.started) {
+    renderProjectUI();
+    toast('Projeto criado. Termine o Pomodoro para abrir.', 4000);
+  } else {
+    activeProjectId = proj.id;
+    saveProjects();
+    loadSpace();
+    showTab('dashboard');
+    toast(`Projeto "${name}" criado e aberto ✅`, 3500);
+  }
+});
+
+// ---------- Zerar dados (2 confirmações) ----------
+$('reset-current').addEventListener('click', () => {
+  const active = getActiveProject();
+  const isMain = !activeProjectId;
+  askDialog({
+    title: 'Zerar dados',
+    message: isMain
+      ? 'Deseja reiniciar os dados principais?'
+      : `Deseja reiniciar os dados do projeto "${active.name}"?`
+  }, () => {
+    askDialog({
+      title: 'Tem certeza?',
+      message: `Todas as matérias, sessões, metas e o Pomodoro ${isMain ? 'do Principal' : `de "${active.name}"`} serão apagados. Não dá para desfazer.`,
+      yes: 'Sim, zerar',
+      danger: true
+    }, () => {
+      resetPomodoroState();
+      removeSpaceData(activeProjectId);
+      loadSpace();
+      showTab('dashboard');
+      toast('Dados zerados ✅', 3000);
+    });
+  });
+});
+
+$('reset-all').addEventListener('click', () => {
+  const n = projects.length;
+  askDialog({
+    title: 'Zerar tudo',
+    message: n
+      ? `Deseja reiniciar TODOS os dados (Principal e ${n} ${n === 1 ? 'projeto' : 'projetos'})?`
+      : 'Deseja reiniciar TODOS os dados?'
+  }, () => {
+    askDialog({
+      title: 'Tem certeza?',
+      message: 'Tudo será apagado: projetos, matérias, sessões, metas e Pomodoro. O app vai começar do zero. Não dá para desfazer.',
+      yes: 'Sim, zerar tudo',
+      danger: true
+    }, () => {
+      resetPomodoroState();
+      projects.forEach(p => removeSpaceData(p.id));
+      removeSpaceData('');
+      projects = [];
+      activeProjectId = '';
+      try {
+        localStorage.removeItem('estudo:projects');
+        localStorage.removeItem('estudo:activeProject');
+      } catch (e) { /* ignora */ }
+      loadSpace();
+      showTab('dashboard');
+      toast('Tudo zerado. Recomeçando do zero ✅', 3500);
+    });
+  });
+});
+
+// ---------- Menu ----------
+$('menu-btn').addEventListener('click', () => {
+  if ($('menu').classList.contains('active')) showTab(lastTab || 'dashboard');
+  else showTab('menu');
+});
+$('project-chip').addEventListener('click', () => showTab('menu'));
+
 // ---------- Início ----------
 function init() {
   safe(() => { $('app-version').textContent = 'v' + APP_VERSION; });
+  safe(() => {
+    $('subject-color').value = suggestColor(state.subjects.map(s => s.color));
+    $('project-color').value = suggestColor(projects.map(p => p.color));
+    paintColorField('subject-color');
+    paintColorField('project-color');
+  });
+  safe(renderProjectUI);
   safe(renderSubjects);
   safe(loadGoals);
   safe(restorePomodoro);
