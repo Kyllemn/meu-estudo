@@ -274,6 +274,36 @@ main { flex: 1; padding: 0 1.1rem 2rem; }
   min-height: 1.2em;
 }
 
-@media (max-width: 380px) {
-  .timer-display { font-size: 4.2rem; }
+/* Modal */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1.5rem;
+}
+.modal.hidden { display: none; }
+.modal-content {
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 1.8rem 1.5rem;
+  text-align: center;
+  max-width: 340px;
+  width: 100%;
+}
+.modal-content h2 {
+  margin-bottom: 0.6rem;
+  font-size: 1.4rem;
+}
+.modal-content p {
+  color: var(--text-muted);
+  margin-bottom: 1.4rem;
+}
+.modal-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
 }

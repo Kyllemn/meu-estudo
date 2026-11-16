@@ -166,7 +166,14 @@
     </main>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="app.js"></script>
-</body>
-</html>
+  <!-- Modal de tempo esgotado -->
+  <div id="alarm-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2 id="alarm-title">Tempo esgotado!</h2>
+      <p id="alarm-message">Quer parar ou continuar?</p>
+      <div class="modal-buttons">
+        <button id="alarm-yes" class="btn-primary">Sim, parar</button>
+        <button id="alarm-no" class="btn-secondary">Não, continuar</button>
+      </div>
+    </div>
+  </div>

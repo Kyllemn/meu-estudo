@@ -380,8 +380,53 @@ function resetPomodoro() {
   document.getElementById('mode-label').textContent = 'Foco';
 }
 
+// Alarme sonoro simples
+function playAlarm() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.2);
+    osc.start();
+    osc.stop(ctx.currentTime + 1.2);
+  } catch (e) {}
+}
+
+function showAlarmModal(title, message, onYes, onNo) {
+  document.getElementById('alarm-title').textContent = title;
+  document.getElementById('alarm-message').textContent = message;
+  document.getElementById('alarm-modal').classList.remove('hidden');
+  playAlarm();
+
+  const yesBtn = document.getElementById('alarm-yes');
+  const noBtn = document.getElementById('alarm-no');
+
+  const clean = () => {
+    document.getElementById('alarm-modal').classList.add('hidden');
+    yesBtn.onclick = null;
+    noBtn.onclick = null;
+  };
+
+  yesBtn.onclick = () => {
+    clean();
+    if (onYes) onYes();
+  };
+  noBtn.onclick = () => {
+    clean();
+    if (onNo) onNo();
+  };
+}
+
 function pomodoroFinished() {
+  playAlarm();
+
   if (!state.pomodoro.isBreak) {
+    // Fim do foco
     const minutes = parseInt(document.getElementById('focus-time').value) || 25;
     if (state.pomodoro.currentSubject) {
       state.sessions.push({
@@ -399,24 +444,45 @@ function pomodoroFinished() {
     const count = state.sessions.filter(s => s.notes === 'Pomodoro' && getDateKey(new Date(s.date)) === today).length;
     document.getElementById('pomodoros-hoje').textContent = count;
 
-    state.pomodoro.isBreak = true;
-    const breakMin = parseInt(document.getElementById('break-time').value) || 5;
-    state.pomodoro.timeLeft = breakMin * 60;
-    document.getElementById('current-subject').textContent = 'Pausa!';
-    document.getElementById('mode-label').textContent = 'Pausa';
-    alert('Pomodoro concluído! Hora da pausa.');
-    startPomodoro();
+    showAlarmModal(
+      'Tempo de foco acabou!',
+      'Quer parar agora ou fazer a pausa?',
+      () => {
+        // Sim, parar
+        resetPomodoro();
+      },
+      () => {
+        // Não, continuar → inicia pausa
+        state.pomodoro.isBreak = true;
+        const breakMin = parseInt(document.getElementById('break-time').value) || 5;
+        state.pomodoro.timeLeft = breakMin * 60;
+        document.getElementById('current-subject').textContent = 'Pausa!';
+        document.getElementById('mode-label').textContent = 'Pausa';
+        startPomodoro();
+      }
+    );
   } else {
-    state.pomodoro.isBreak = false;
-    const focus = parseInt(document.getElementById('focus-time').value) || 25;
-    state.pomodoro.timeLeft = focus * 60;
-    document.getElementById('current-subject').textContent = 'Pronto pra mais um?';
-    document.getElementById('mode-label').textContent = 'Foco';
-    state.pomodoro.isRunning = false;
-    document.getElementById('btn-start').disabled = false;
-    document.getElementById('btn-pause').disabled = true;
-    alert('Pausa acabou!');
-    updateTimerDisplay();
+    // Fim da pausa
+    showAlarmModal(
+      'Pausa acabou!',
+      'Quer parar ou continuar estudando?',
+      () => {
+        // Sim, parar
+        resetPomodoro();
+      },
+      () => {
+        // Não, continuar → novo foco
+        state.pomodoro.isBreak = false;
+        const focus = parseInt(document.getElementById('focus-time').value) || 25;
+        state.pomodoro.timeLeft = focus * 60;
+        document.getElementById('current-subject').textContent = 'Foco';
+        document.getElementById('mode-label').textContent = 'Foco';
+        state.pomodoro.isRunning = false;
+        document.getElementById('btn-start').disabled = false;
+        document.getElementById('btn-pause').disabled = true;
+        updateTimerDisplay();
+      }
+    );
   }
   renderDashboard();
 }
