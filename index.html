@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Meu Estudo</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#6366f1">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header>
+      <h1>Meu Estudo</h1>
+      <button id="btn-settings" class="icon-btn">⚙️</button>
+    </header>
+
+    <!-- Navegação principal -->
+    <nav class="main-nav">
+      <button class="nav-btn active" data-tab="dashboard">Dashboard</button>
+      <button class="nav-btn" data-tab="pomodoro">Pomodoro</button>
+      <button class="nav-btn" data-tab="registrar">Registrar</button>
+      <button class="nav-btn" data-tab="metas">Metas</button>
+      <button class="nav-btn" data-tab="materias">Matérias</button>
+    </nav>
+
+    <!-- Conteúdo das abas -->
+    <main id="content">
+      <!-- Dashboard -->
+      <section id="dashboard" class="tab active">
+        <div class="period-selector">
+          <button class="period-btn active" data-period="hoje">Hoje</button>
+          <button class="period-btn" data-period="semana">Semana</button>
+          <button class="period-btn" data-period="mes">Mês</button>
+        </div>
+
+        <div class="progress-cards" id="progress-cards"></div>
+
+        <div class="chart-container">
+          <h3>Tempo por Matéria</h3>
+          <canvas id="subjectChart"></canvas>
+        </div>
+
+        <div class="sessions-list">
+          <h3>Últimas sessões</h3>
+          <div id="recent-sessions"></div>
+        </div>
+      </section>
+
+      <!-- Pomodoro -->
+      <section id="pomodoro" class="tab">
+        <div class="pomodoro-container">
+          <div class="timer-display" id="timer-display">25:00</div>
+          <div class="current-subject" id="current-subject">Selecione uma matéria</div>
+          
+          <select id="pomodoro-subject" class="big-select"></select>
+          
+          <div class="pomodoro-controls">
+            <button id="btn-start" class="big-btn primary">Iniciar</button>
+            <button id="btn-pause" class="big-btn" disabled>Pausar</button>
+            <button id="btn-reset" class="big-btn">Reset</button>
+          </div>
+
+          <div class="pomodoro-settings">
+            <label>Foco (min): <input type="number" id="focus-time" value="25" min="1" max="120"></label>
+            <label>Pausa (min): <input type="number" id="break-time" value="5" min="1" max="30"></label>
+          </div>
+
+          <div class="pomodoro-stats">
+            Pomodoros hoje: <strong id="pomodoros-hoje">0</strong>
+          </div>
+        </div>
+      </section>
+
+      <!-- Registrar manualmente -->
+      <section id="registrar" class="tab">
+        <form id="session-form" class="form">
+          <label>Matéria</label>
+          <select id="session-subject" required></select>
+
+          <label>Tempo (minutos)</label>
+          <input type="number" id="session-minutes" min="1" required placeholder="Ex: 45">
+
+          <label>O que você estudou? (opcional)</label>
+          <textarea id="session-notes" placeholder="Resumo rápido..."></textarea>
+
+          <label>Como foi?</label>
+          <select id="session-feeling">
+            <option value="bom">😊 Bom</option>
+            <option value="medio">😐 Médio</option>
+            <option value="ruim">😞 Ruim</option>
+          </select>
+
+          <button type="submit" class="big-btn primary">Salvar sessão</button>
+        </form>
+      </section>
+
+      <!-- Metas -->
+      <section id="metas" class="tab">
+        <form id="goals-form" class="form">
+          <h3>Metas de tempo (em minutos)</h3>
+          
+          <label>Meta Diária</label>
+          <input type="number" id="goal-daily" min="0" placeholder="Ex: 120">
+
+          <label>Meta Semanal</label>
+          <input type="number" id="goal-weekly" min="0" placeholder="Ex: 600">
+
+          <label>Meta Mensal</label>
+          <input type="number" id="goal-monthly" min="0" placeholder="Ex: 2400">
+
+          <button type="submit" class="big-btn primary">Salvar metas</button>
+        </form>
+      </section>
+
+      <!-- Matérias -->
+      <section id="materias" class="tab">
+        <form id="subject-form" class="form">
+          <label>Nova matéria</label>
+          <input type="text" id="subject-name" required placeholder="Ex: Matemática">
+          <label>Cor</label>
+          <input type="color" id="subject-color" value="#6366f1">
+          <button type="submit" class="big-btn primary">Adicionar</button>
+        </form>
+
+        <div id="subjects-list" class="subjects-list"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
