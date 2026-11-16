@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-version="3">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="Meu Estudo">
   <meta name="format-detection" content="telephone=no">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
   <div id="app">
@@ -21,6 +21,7 @@
         <span class="logo">📚</span>
         <h1>Meu Estudo</h1>
       </div>
+      <span class="app-version" id="app-version"></span>
     </header>
 
     <nav class="main-nav">
@@ -210,6 +211,6 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>

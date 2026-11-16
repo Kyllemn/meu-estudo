@@ -5,8 +5,24 @@
    Tudo salvo no localStorage (funciona offline).
    ========================================================= */
 
+// Versão do app: aparece no topo da tela. Deve ser igual ao data-version do index.html
+// e ao ?v= dos arquivos. Ao publicar mudanças, aumente nos 3 lugares + service-worker.
+const APP_VERSION = '3';
+
 // ---------- Utilidades ----------
-const $ = id => document.getElementById(id);
+// Se um elemento não existir (ex.: HTML antigo em cache), devolve um "elemento falso"
+// em vez de travar o app inteiro.
+function missingElement() {
+  return {
+    value: '', textContent: '', innerHTML: '', hidden: true, disabled: false,
+    style: {}, dataset: {},
+    classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
+    addEventListener() {}, appendChild() {}, focus() {}, reset() {},
+    querySelector() { return null; }, querySelectorAll() { return []; }, closest() { return null; }
+  };
+}
+const $ = id => document.getElementById(id) || missingElement();
+const exists = id => !!document.getElementById(id);
 
 function load(key, fallback) {
   try {
@@ -81,6 +97,23 @@ function toast(msg, ms = 2500) {
 function safe(fn) {
   try { fn(); } catch (e) { console.error(e); }
 }
+
+// Mostra qualquer erro na tela (ajuda a descobrir problemas no celular)
+window.addEventListener('error', e => {
+  if (!e || !e.message || e.message === 'Script error.') return;
+  toast('⚠️ Erro: ' + e.message + ' (v' + APP_VERSION + ')', 8000);
+});
+
+// HTML e JS de versões diferentes (cache antigo)? Recarrega uma vez buscando tudo novo.
+(function checkVersion() {
+  const htmlVersion = document.documentElement.getAttribute('data-version');
+  let tried = false;
+  try { tried = sessionStorage.getItem('reloadedFor') === APP_VERSION; } catch (e) { /* ignora */ }
+  if (htmlVersion !== APP_VERSION && !tried) {
+    try { sessionStorage.setItem('reloadedFor', APP_VERSION); } catch (e) { /* ignora */ }
+    location.replace(location.pathname + '?v=' + APP_VERSION + '&t=' + Date.now());
+  }
+})();
 
 // ---------- Estado ----------
 const DEFAULT_DAILY = 120;
@@ -198,10 +231,12 @@ function renderSubjects() {
     });
   });
 
-  // mantém o que estava selecionado; com uma única matéria, já seleciona
+  // mantém o que estava selecionado; senão usa a última matéria usada (ou a primeira)
+  const last = load('lastSubject', null);
+  const fallbackId = getSubject(last) ? last : (state.subjects[0] ? state.subjects[0].id : '');
   selects.forEach((sel, i) => {
     if (previous[i] && getSubject(previous[i])) sel.value = previous[i];
-    else if (state.subjects.length === 1) sel.value = state.subjects[0].id;
+    else sel.value = fallbackId;
   });
 
   if (state.subjects.length === 0) {
@@ -597,10 +632,16 @@ function startPomodoro() {
     // começando um foco novo
     const subjectId = $('pomodoro-subject').value;
     if (!subjectId || !getSubject(subjectId)) {
-      toast(state.subjects.length ? 'Selecione uma matéria primeiro' : 'Cadastre uma matéria na aba Matérias');
+      if (state.subjects.length) {
+        toast('Selecione uma matéria primeiro');
+      } else {
+        alert('Cadastre uma matéria primeiro (aba Matérias).');
+        showTab('materias');
+      }
       return;
     }
     P.currentSubject = subjectId;
+    store('lastSubject', subjectId);
     P.isBreak = false;
     P.sessionLength = getFocusMinutes() * 60;
     P.timeLeft = P.sessionLength;
@@ -749,7 +790,28 @@ function stopPomodoro() {
   pausePomodoro(); // congela o tempo enquanto decide
   const minutes = Math.max(1, Math.round(getElapsedFocusSeconds() / 60));
   pendingStop = { subjectId: P.currentSubject, minutes, wasRunning };
-  openStopModal();
+  if (exists('stop-modal')) openStopModal();
+  else stopWithDialogs();
+}
+
+// Plano B do Parar, caso a janela não exista na página
+function stopWithDialogs() {
+  const { subjectId, minutes, wasRunning } = pendingStop;
+  pendingStop = null;
+  if (confirm(`Quer gravar essa sessão automaticamente? (${formatMinutes(minutes)})`)) {
+    const notes = prompt('O que você estudou? (resumo rápido)');
+    if (notes === null) { if (wasRunning) startPomodoro(); return; }
+    const f = (prompt('Como foi? bom, medio ou ruim', 'bom') || '').toLowerCase().trim();
+    const feeling = ['bom', 'medio', 'ruim'].includes(f) ? f : 'bom';
+    if (getSubject(subjectId)) {
+      addSession({ subjectId, minutes, notes: notes.trim() || 'Pomodoro (parcial)', feeling, type: 'pomodoro-parcial' });
+      toast('Sessão salva! ✅');
+    }
+  } else {
+    toast('Ok. Lembre de registrar manualmente na aba Registrar.', 5000);
+  }
+  resetPomodoroState();
+  renderDashboard();
 }
 
 function openStopModal() {
@@ -903,6 +965,7 @@ function restorePomodoro() {
 
 // ---------- Início ----------
 function init() {
+  safe(() => { $('app-version').textContent = 'v' + APP_VERSION; });
   safe(renderSubjects);
   safe(loadGoals);
   safe(restorePomodoro);
