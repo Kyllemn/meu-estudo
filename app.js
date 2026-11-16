@@ -159,27 +159,29 @@ function parseHM(str) {
 
 function updateGoalExamples() {
   const d = parseHM(document.getElementById('goal-daily').value);
-  const w = parseHM(document.getElementById('goal-weekly').value);
-  const m = parseHM(document.getElementById('goal-monthly').value);
+  document.getElementById('ex-daily').textContent = d ? `= ${formatMinutes(d)} por dia` : '';
 
-  document.getElementById('ex-daily').textContent = d ? `= ${formatMinutes(d)}` : '';
-  document.getElementById('ex-weekly').textContent = w ? `= ${formatMinutes(w)}` : '';
-  document.getElementById('ex-monthly').textContent = m ? `= ${formatMinutes(m)}` : '';
+  if (d) {
+    document.getElementById('proj-weekly').textContent = formatMinutes(d * 7);
+    document.getElementById('proj-monthly').textContent = formatMinutes(d * 30);
+  } else {
+    document.getElementById('proj-weekly').textContent = '—';
+    document.getElementById('proj-monthly').textContent = '—';
+  }
 }
 
 function loadGoals() {
   document.getElementById('goal-daily').value = formatHM(state.goals.daily);
-  document.getElementById('goal-weekly').value = formatHM(state.goals.weekly);
-  document.getElementById('goal-monthly').value = formatHM(state.goals.monthly);
   updateGoalExamples();
 }
 
 document.getElementById('goals-form').addEventListener('submit', e => {
   e.preventDefault();
+  const daily = parseHM(document.getElementById('goal-daily').value);
   state.goals = {
-    daily: parseHM(document.getElementById('goal-daily').value),
-    weekly: parseHM(document.getElementById('goal-weekly').value),
-    monthly: parseHM(document.getElementById('goal-monthly').value)
+    daily: daily,
+    weekly: daily * 7,
+    monthly: daily * 30
   };
   save();
 
@@ -195,9 +197,7 @@ document.getElementById('goals-form').addEventListener('submit', e => {
   renderDashboard();
 });
 
-['goal-daily','goal-weekly','goal-monthly'].forEach(id => {
-  document.getElementById(id).addEventListener('input', updateGoalExamples);
-});
+document.getElementById('goal-daily').addEventListener('input', updateGoalExamples);
 
 // Registrar
 document.getElementById('session-form').addEventListener('submit', e => {
@@ -423,9 +423,47 @@ function pomodoroFinished() {
   renderDashboard();
 }
 
-document.getElementById('btn-start').addEventListener('click', startPomodoro);
-document.getElementById('btn-pause').addEventListener('click', pausePomodoro);
-document.getElementById('btn-reset').addEventListener('click', resetPomodoro);
+function stopPomodoro() {
+  if (!state.pomodoro.isRunning && state.pomodoro.timeLeft === (parseInt(document.getElementById('focus-time').value) || 25) * 60) {
+    alert('Nenhuma sessão em andamento.');
+    return;
+  }
+
+  const wantSave = confirm('Quer gravar essa sessão automaticamente?');
+
+  if (wantSave) {
+    const subjectId = state.pomodoro.currentSubject || document.getElementById('pomodoro-subject').value;
+    const focusMin = parseInt(document.getElementById('focus-time').value) || 25;
+    const elapsed = focusMin * 60 - state.pomodoro.timeLeft;
+    const minutes = Math.max(1, Math.round(elapsed / 60));
+
+    const notes = prompt('O que você estudou? (resumo rápido)');
+    if (notes === null) return; // cancelou
+
+    const feeling = prompt('Como foi? Digite: bom, medio ou ruim', 'bom');
+    const feelingValue = ['bom','medio','ruim'].includes((feeling || '').toLowerCase()) ? feeling.toLowerCase() : 'bom';
+
+    if (subjectId) {
+      state.sessions.push({
+        id: Date.now().toString(),
+        subjectId,
+        minutes,
+        date: new Date().toISOString(),
+        notes: notes || 'Pomodoro',
+        feeling: feelingValue
+      });
+      save();
+      alert('Sessão salva!');
+    }
+  } else {
+    alert('Ok. Lembre de registrar manualmente na aba Registrar.');
+  }
+
+  resetPomodoro();
+  renderDashboard();
+}
+
+document.getElementById('btn-stop').addEventListener('click', stopPomodoro);
 
 document.getElementById('focus-time').addEventListener('change', () => {
   if (!state.pomodoro.isRunning && !state.pomodoro.isBreak) {

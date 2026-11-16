@@ -267,12 +267,14 @@ main { flex: 1; padding: 0 1.1rem 2rem; }
   font-size: 0.9rem;
   color: var(--text-muted);
 }
-.example {
-  font-size: 0.85rem;
-  color: var(--primary-light);
-  margin-top: 0.3rem;
-  min-height: 1.2em;
+.projections {
+  margin: 1rem 0;
+  padding: 0.8rem;
+  background: var(--surface2);
+  border-radius: 12px;
+  font-size: 0.95rem;
 }
+.projections p { margin: 0.3rem 0; }
 
 @media (max-width: 380px) {
   .timer-display { font-size: 4.2rem; }
