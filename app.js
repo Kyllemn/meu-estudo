@@ -190,7 +190,17 @@ document.getElementById('goals-form').addEventListener('submit', e => {
     monthly: mH * 60 + mM
   };
   save();
-  alert('Metas salvas!');
+  
+  // Confirmação visual
+  const btn = e.target.querySelector('button');
+  const original = btn.textContent;
+  btn.textContent = 'Salvo!';
+  btn.style.background = '#10b981';
+  setTimeout(() => {
+    btn.textContent = original;
+    btn.style.background = '';
+  }, 1500);
+
   renderDashboard();
 });
 
