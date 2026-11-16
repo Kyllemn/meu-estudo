@@ -133,52 +133,19 @@
       <section id="metas" class="tab">
         <form id="goals-form" class="card form">
           <h3>Metas de tempo</h3>
-          <p class="hint">Coloque quantas horas e minutos você quer estudar</p>
+          <p class="hint">Digite no formato horas:minutos<br>Exemplo: 02:30 (2 horas e 30 minutos) ou 00:45 (45 minutos)</p>
 
-          <div class="goal-group">
-            <label>Meta Diária</label>
-            <div class="time-inputs">
-              <div>
-                <input type="number" id="goal-daily-h" min="0" max="24" placeholder="0">
-                <span>horas</span>
-              </div>
-              <div>
-                <input type="number" id="goal-daily-m" min="0" max="59" placeholder="0">
-                <span>minutos</span>
-              </div>
-            </div>
-            <p class="example" id="ex-daily"></p>
-          </div>
+          <label>Meta Diária</label>
+          <input type="text" id="goal-daily" placeholder="00:00" maxlength="5">
+          <p class="example" id="ex-daily"></p>
 
-          <div class="goal-group">
-            <label>Meta Semanal</label>
-            <div class="time-inputs">
-              <div>
-                <input type="number" id="goal-weekly-h" min="0" placeholder="0">
-                <span>horas</span>
-              </div>
-              <div>
-                <input type="number" id="goal-weekly-m" min="0" max="59" placeholder="0">
-                <span>minutos</span>
-              </div>
-            </div>
-            <p class="example" id="ex-weekly"></p>
-          </div>
+          <label>Meta Semanal</label>
+          <input type="text" id="goal-weekly" placeholder="00:00" maxlength="5">
+          <p class="example" id="ex-weekly"></p>
 
-          <div class="goal-group">
-            <label>Meta Mensal</label>
-            <div class="time-inputs">
-              <div>
-                <input type="number" id="goal-monthly-h" min="0" placeholder="0">
-                <span>horas</span>
-              </div>
-              <div>
-                <input type="number" id="goal-monthly-m" min="0" max="59" placeholder="0">
-                <span>minutos</span>
-              </div>
-            </div>
-            <p class="example" id="ex-monthly"></p>
-          </div>
+          <label>Meta Mensal</label>
+          <input type="text" id="goal-monthly" placeholder="00:00" maxlength="5">
+          <p class="example" id="ex-monthly"></p>
 
           <button type="submit" class="btn-primary">Salvar metas</button>
         </form>

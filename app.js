@@ -141,57 +141,48 @@ document.getElementById('subject-form').addEventListener('submit', e => {
 });
 
 // Metas
-function minutesToHM(mins) {
+function formatHM(mins) {
+  if (!mins) return '';
   const h = Math.floor(mins / 60);
   const m = mins % 60;
-  return { h, m };
+  return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+}
+
+function parseHM(str) {
+  if (!str) return 0;
+  const parts = str.trim().split(':');
+  if (parts.length !== 2) return 0;
+  const h = parseInt(parts[0]) || 0;
+  const m = parseInt(parts[1]) || 0;
+  return h * 60 + m;
 }
 
 function updateGoalExamples() {
-  const dH = parseInt(document.getElementById('goal-daily-h').value) || 0;
-  const dM = parseInt(document.getElementById('goal-daily-m').value) || 0;
-  const wH = parseInt(document.getElementById('goal-weekly-h').value) || 0;
-  const wM = parseInt(document.getElementById('goal-weekly-m').value) || 0;
-  const mH = parseInt(document.getElementById('goal-monthly-h').value) || 0;
-  const mM = parseInt(document.getElementById('goal-monthly-m').value) || 0;
+  const d = parseHM(document.getElementById('goal-daily').value);
+  const w = parseHM(document.getElementById('goal-weekly').value);
+  const m = parseHM(document.getElementById('goal-monthly').value);
 
-  document.getElementById('ex-daily').textContent = dH || dM ? `= ${formatMinutes(dH * 60 + dM)} por dia` : '';
-  document.getElementById('ex-weekly').textContent = wH || wM ? `= ${formatMinutes(wH * 60 + wM)} por semana` : '';
-  document.getElementById('ex-monthly').textContent = mH || mM ? `= ${formatMinutes(mH * 60 + mM)} por mês` : '';
+  document.getElementById('ex-daily').textContent = d ? `= ${formatMinutes(d)}` : '';
+  document.getElementById('ex-weekly').textContent = w ? `= ${formatMinutes(w)}` : '';
+  document.getElementById('ex-monthly').textContent = m ? `= ${formatMinutes(m)}` : '';
 }
 
 function loadGoals() {
-  const d = minutesToHM(state.goals.daily || 0);
-  const w = minutesToHM(state.goals.weekly || 0);
-  const m = minutesToHM(state.goals.monthly || 0);
-
-  document.getElementById('goal-daily-h').value = d.h || '';
-  document.getElementById('goal-daily-m').value = d.m || '';
-  document.getElementById('goal-weekly-h').value = w.h || '';
-  document.getElementById('goal-weekly-m').value = w.m || '';
-  document.getElementById('goal-monthly-h').value = m.h || '';
-  document.getElementById('goal-monthly-m').value = m.m || '';
-
+  document.getElementById('goal-daily').value = formatHM(state.goals.daily);
+  document.getElementById('goal-weekly').value = formatHM(state.goals.weekly);
+  document.getElementById('goal-monthly').value = formatHM(state.goals.monthly);
   updateGoalExamples();
 }
 
 document.getElementById('goals-form').addEventListener('submit', e => {
   e.preventDefault();
-  const dH = parseInt(document.getElementById('goal-daily-h').value) || 0;
-  const dM = parseInt(document.getElementById('goal-daily-m').value) || 0;
-  const wH = parseInt(document.getElementById('goal-weekly-h').value) || 0;
-  const wM = parseInt(document.getElementById('goal-weekly-m').value) || 0;
-  const mH = parseInt(document.getElementById('goal-monthly-h').value) || 0;
-  const mM = parseInt(document.getElementById('goal-monthly-m').value) || 0;
-
   state.goals = {
-    daily: dH * 60 + dM,
-    weekly: wH * 60 + wM,
-    monthly: mH * 60 + mM
+    daily: parseHM(document.getElementById('goal-daily').value),
+    weekly: parseHM(document.getElementById('goal-weekly').value),
+    monthly: parseHM(document.getElementById('goal-monthly').value)
   };
   save();
-  
-  // Confirmação visual
+
   const btn = e.target.querySelector('button');
   const original = btn.textContent;
   btn.textContent = 'Salvo!';
@@ -204,7 +195,7 @@ document.getElementById('goals-form').addEventListener('submit', e => {
   renderDashboard();
 });
 
-['goal-daily-h','goal-daily-m','goal-weekly-h','goal-weekly-m','goal-monthly-h','goal-monthly-m'].forEach(id => {
+['goal-daily','goal-weekly','goal-monthly'].forEach(id => {
   document.getElementById(id).addEventListener('input', updateGoalExamples);
 });
 
