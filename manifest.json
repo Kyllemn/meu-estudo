@@ -2,10 +2,11 @@
   "name": "Meu Estudo",
   "short_name": "Estudo",
   "description": "App de estudos personalizado com Pomodoro, metas e dashboard",
-  "start_url": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#6366f1",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
   "icons": [
     {
       "src": "icon-192.png",

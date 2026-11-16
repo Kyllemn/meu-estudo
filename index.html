@@ -2,13 +2,15 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Meu Estudo</title>
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#6366f1">
+  <meta name="theme-color" content="#0b1220">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Meu Estudo">
+  <meta name="format-detection" content="telephone=no">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -22,23 +24,23 @@
     </header>
 
     <nav class="main-nav">
-      <button class="nav-btn active" data-tab="dashboard">
+      <button type="button" class="nav-btn active" data-tab="dashboard">
         <span class="nav-icon">📊</span>
         <span>Dashboard</span>
       </button>
-      <button class="nav-btn" data-tab="pomodoro">
+      <button type="button" class="nav-btn" data-tab="pomodoro">
         <span class="nav-icon">⏱️</span>
         <span>Pomodoro</span>
       </button>
-      <button class="nav-btn" data-tab="registrar">
+      <button type="button" class="nav-btn" data-tab="registrar">
         <span class="nav-icon">➕</span>
         <span>Registrar</span>
       </button>
-      <button class="nav-btn" data-tab="metas">
+      <button type="button" class="nav-btn" data-tab="metas">
         <span class="nav-icon">🎯</span>
         <span>Metas</span>
       </button>
-      <button class="nav-btn" data-tab="materias">
+      <button type="button" class="nav-btn" data-tab="materias">
         <span class="nav-icon">📖</span>
         <span>Matérias</span>
       </button>
@@ -48,16 +50,20 @@
       <!-- Dashboard -->
       <section id="dashboard" class="tab active">
         <div class="period-selector">
-          <button class="period-btn active" data-period="hoje">Hoje</button>
-          <button class="period-btn" data-period="semana">Semana</button>
-          <button class="period-btn" data-period="mes">Mês</button>
+          <button type="button" class="period-btn active" data-period="hoje">Hoje</button>
+          <button type="button" class="period-btn" data-period="semana">Semana</button>
+          <button type="button" class="period-btn" data-period="mes">Mês</button>
         </div>
 
         <div id="progress-cards"></div>
 
         <div class="card">
           <h3>Tempo por Matéria</h3>
-          <canvas id="subjectChart"></canvas>
+          <div class="chart-wrap">
+            <canvas id="subjectChart"></canvas>
+          </div>
+          <div id="subject-fallback"></div>
+          <p id="chart-empty" class="empty-msg">Nenhum estudo nesse período</p>
         </div>
 
         <div class="card">
@@ -68,31 +74,31 @@
 
       <!-- Pomodoro -->
       <section id="pomodoro" class="tab">
-        <div class="pomodoro-screen">
+        <div class="pomodoro-screen" id="pomodoro-screen">
           <div class="mode-label" id="mode-label">Foco</div>
           <div class="timer-display" id="timer-display">25:00</div>
           <div class="current-subject" id="current-subject">Selecione uma matéria</div>
 
-          <button id="btn-start" class="btn-primary big">Iniciar</button>
+          <button type="button" id="btn-start" class="btn-primary big">Iniciar</button>
 
           <div class="control-row">
-            <button id="btn-pause" class="btn-secondary" disabled>Pausar</button>
-            <button id="btn-stop" class="btn-secondary">Parar</button>
-            <button id="btn-reset" class="btn-secondary">Reset</button>
+            <button type="button" id="btn-pause" class="btn-secondary" disabled>Pausar</button>
+            <button type="button" id="btn-stop" class="btn-secondary">Parar</button>
+            <button type="button" id="btn-reset" class="btn-secondary">Reset</button>
           </div>
 
           <div class="card settings-card">
-            <label>Matéria</label>
+            <label for="pomodoro-subject">Matéria</label>
             <select id="pomodoro-subject"></select>
 
             <div class="two-cols">
               <div>
-                <label>Foco (min)</label>
-                <input type="number" id="focus-time" value="25" min="1" max="120">
+                <label for="focus-time">Foco (min)</label>
+                <input type="number" id="focus-time" value="25" min="1" max="120" inputmode="numeric">
               </div>
               <div>
-                <label>Pausa (min)</label>
-                <input type="number" id="break-time" value="5" min="1" max="30">
+                <label for="break-time">Pausa (min)</label>
+                <input type="number" id="break-time" value="5" min="1" max="30" inputmode="numeric">
               </div>
             </div>
           </div>
@@ -103,27 +109,27 @@
 
       <!-- Registrar -->
       <section id="registrar" class="tab">
-        <form id="session-form" class="card form">
+        <form id="session-form" class="card form" novalidate>
           <h3>Registrar sessão</h3>
-          <label>Matéria</label>
-          <select id="session-subject" required></select>
+          <label for="session-subject">Matéria</label>
+          <select id="session-subject"></select>
 
           <label>Quanto tempo estudou?</label>
           <div class="time-inputs">
             <div>
-              <input type="number" id="session-hours" min="0" max="12" placeholder="0">
+              <input type="number" id="session-hours" min="0" max="12" placeholder="0" inputmode="numeric" aria-label="Horas">
               <span>horas</span>
             </div>
             <div>
-              <input type="number" id="session-minutes" min="0" max="59" placeholder="0">
+              <input type="number" id="session-minutes" min="0" max="59" placeholder="0" inputmode="numeric" aria-label="Minutos">
               <span>minutos</span>
             </div>
           </div>
 
-          <label>O que você estudou?</label>
+          <label for="session-notes">O que você estudou?</label>
           <textarea id="session-notes" placeholder="Resumo rápido..."></textarea>
 
-          <label>Como foi?</label>
+          <label for="session-feeling">Como foi?</label>
           <select id="session-feeling">
             <option value="bom">😊 Bom</option>
             <option value="medio">😐 Médio</option>
@@ -136,12 +142,12 @@
 
       <!-- Metas -->
       <section id="metas" class="tab">
-        <form id="goals-form" class="card form">
+        <form id="goals-form" class="card form" novalidate>
           <h3>Meta Diária</h3>
-          <p class="hint">Digite no formato horas:minutos<br>Exemplo: 02:30 ou 00:45</p>
+          <p class="hint">Formato horas:minutos. Exemplo: 02:30 ou 00:45<br>Pode digitar só os números: 0230 vira 02:30</p>
 
-          <label>Quanto você quer estudar por dia?</label>
-          <input type="text" id="goal-daily" placeholder="00:00" maxlength="5">
+          <label for="goal-daily">Quanto você quer estudar por dia?</label>
+          <input type="text" id="goal-daily" placeholder="00:00" maxlength="5" inputmode="numeric" autocomplete="off">
           <p class="example" id="ex-daily"></p>
 
           <div class="projections">
@@ -157,8 +163,8 @@
       <section id="materias" class="tab">
         <form id="subject-form" class="card form">
           <h3>Nova matéria</h3>
-          <input type="text" id="subject-name" required placeholder="Nome da matéria">
-          <label>Cor</label>
+          <input type="text" id="subject-name" required placeholder="Nome da matéria" maxlength="60" aria-label="Nome da matéria">
+          <label for="subject-color">Cor</label>
           <input type="color" id="subject-color" value="#6366f1">
           <button type="submit" class="btn-primary">Adicionar</button>
         </form>
@@ -168,7 +174,42 @@
     </main>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Janela do botão Parar -->
+  <div id="stop-modal" class="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="stop-title">
+      <h3 id="stop-title">Parar sessão</h3>
+      <div class="stop-summary">
+        <div><span>Matéria</span><strong id="stop-subject">—</strong></div>
+        <div><span>Tempo</span><strong id="stop-time">—</strong></div>
+      </div>
+
+      <div id="stop-step-ask">
+        <p class="modal-question">Quer gravar essa sessão automaticamente?</p>
+        <button type="button" id="stop-yes" class="btn-primary">Sim, gravar</button>
+        <button type="button" id="stop-no" class="btn-secondary full">Não gravar</button>
+        <button type="button" id="stop-continue" class="btn-link">Voltar ao timer</button>
+      </div>
+
+      <div id="stop-step-details" hidden>
+        <label for="stop-notes">O que você estudou?</label>
+        <textarea id="stop-notes" placeholder="Resumo rápido..."></textarea>
+
+        <label>Como foi?</label>
+        <div class="feeling-group">
+          <button type="button" class="feeling-btn active" data-feeling="bom">😊<span>Bom</span></button>
+          <button type="button" class="feeling-btn" data-feeling="medio">😐<span>Médio</span></button>
+          <button type="button" class="feeling-btn" data-feeling="ruim">😞<span>Ruim</span></button>
+        </div>
+
+        <button type="button" id="stop-save" class="btn-primary">Salvar sessão</button>
+        <button type="button" id="stop-back" class="btn-link">Voltar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
