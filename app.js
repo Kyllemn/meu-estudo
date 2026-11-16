@@ -1,4 +1,3 @@
-// Estado da aplicação
 const state = {
   subjects: JSON.parse(localStorage.getItem('subjects')) || [],
   sessions: JSON.parse(localStorage.getItem('sessions')) || [],
@@ -12,7 +11,6 @@ const state = {
   }
 };
 
-// Utilitários
 function save() {
   localStorage.setItem('subjects', JSON.stringify(state.subjects));
   localStorage.setItem('sessions', JSON.stringify(state.sessions));
@@ -20,6 +18,7 @@ function save() {
 }
 
 function formatMinutes(min) {
+  if (!min) return '0min';
   if (min < 60) return `${min}min`;
   const h = Math.floor(min / 60);
   const m = min % 60;
@@ -34,7 +33,9 @@ function getStartOfWeek(date = new Date()) {
   const d = new Date(date);
   const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  return new Date(d.setDate(diff));
+  d.setDate(diff);
+  d.setHours(0,0,0,0);
+  return d;
 }
 
 function getStartOfMonth(date = new Date()) {
@@ -44,21 +45,18 @@ function getStartOfMonth(date = new Date()) {
 function getSessionsInPeriod(period) {
   const now = new Date();
   let start;
-
   if (period === 'hoje') {
     start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   } else if (period === 'semana') {
     start = getStartOfWeek(now);
-    start.setHours(0, 0, 0, 0);
   } else {
     start = getStartOfMonth(now);
   }
-
   return state.sessions.filter(s => new Date(s.date) >= start);
 }
 
 function getTotalMinutes(sessions) {
-  return sessions.reduce((sum, s) => sum + s.minutes, 0);
+  return sessions.reduce((sum, s) => sum + (s.minutes || 0), 0);
 }
 
 // Navegação
@@ -88,10 +86,11 @@ function renderSubjects() {
   ];
 
   list.innerHTML = '';
-  selects.forEach(sel => sel.innerHTML = '<option value="">Selecione...</option>');
+  selects.forEach(sel => {
+    sel.innerHTML = '<option value="">Selecione...</option>';
+  });
 
   state.subjects.forEach(sub => {
-    // Lista
     const item = document.createElement('div');
     item.className = 'subject-item';
     item.innerHTML = `
@@ -103,7 +102,6 @@ function renderSubjects() {
     `;
     list.appendChild(item);
 
-    // Selects
     selects.forEach(sel => {
       const opt = document.createElement('option');
       opt.value = sub.id;
@@ -112,7 +110,6 @@ function renderSubjects() {
     });
   });
 
-  // Delete
   list.querySelectorAll('.delete-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       if (confirm('Remover essa matéria?')) {
@@ -138,7 +135,7 @@ document.getElementById('subject-form').addEventListener('submit', e => {
     color
   });
   save();
-  document.getElementById('subject-form').reset();
+  e.target.reset();
   document.getElementById('subject-color').value = '#6366f1';
   renderSubjects();
 });
@@ -162,12 +159,12 @@ document.getElementById('goals-form').addEventListener('submit', e => {
   renderDashboard();
 });
 
-// Registrar sessão
+// Registrar
 document.getElementById('session-form').addEventListener('submit', e => {
   e.preventDefault();
   const subjectId = document.getElementById('session-subject').value;
   const minutes = parseInt(document.getElementById('session-minutes').value);
-  const notes = document.getElementById('session-notes').value;
+  const notes = document.getElementById('session-notes').value.trim();
   const feeling = document.getElementById('session-feeling').value;
 
   if (!subjectId || !minutes) return;
@@ -184,7 +181,6 @@ document.getElementById('session-form').addEventListener('submit', e => {
   e.target.reset();
   alert('Sessão registrada!');
   renderDashboard();
-  renderRecentSessions();
 });
 
 // Dashboard
@@ -193,26 +189,27 @@ let subjectChart = null;
 function renderDashboard(period = 'hoje') {
   const sessions = getSessionsInPeriod(period);
   const total = getTotalMinutes(sessions);
-  
+
   let goal = 0;
-  if (period === 'hoje') goal = state.goals.daily;
-  else if (period === 'semana') goal = state.goals.weekly;
-  else goal = state.goals.monthly;
+  let label = '';
+  if (period === 'hoje') { goal = state.goals.daily; label = 'de Hoje'; }
+  else if (period === 'semana') { goal = state.goals.weekly; label = 'da Semana'; }
+  else { goal = state.goals.monthly; label = 'do Mês'; }
 
   const percent = goal > 0 ? Math.min(100, Math.round((total / goal) * 100)) : 0;
 
   document.getElementById('progress-cards').innerHTML = `
-    <div class="progress-card">
-      <h4>Progresso ${period === 'hoje' ? 'de Hoje' : period === 'semana' ? 'da Semana' : 'do Mês'}</h4>
-      <div class="progress-text">${formatMinutes(total)} / ${formatMinutes(goal)}</div>
-      <div class="progress-bar-container">
-        <div class="progress-bar" style="width:${percent}%; background:${percent >= 100 ? 'var(--success)' : 'var(--primary)'}"></div>
+    <div class="card progress-card">
+      <h3>Progresso ${label}</h3>
+      <div class="big-number">${formatMinutes(total)} <span style="color:var(--text-muted); font-size:1rem">/ ${formatMinutes(goal)}</span></div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar" style="width:${percent}%"></div>
       </div>
-      <div style="text-align:right; font-size:0.9rem; color:var(--text-muted)">${percent}%</div>
+      <div style="text-align:right; margin-top:0.4rem; font-size:0.9rem; color:var(--text-muted)">${percent}%</div>
     </div>
   `;
 
-  // Chart por matéria
+  // Chart
   const bySubject = {};
   sessions.forEach(s => {
     bySubject[s.subjectId] = (bySubject[s.subjectId] || 0) + s.minutes;
@@ -233,34 +230,35 @@ function renderDashboard(period = 'hoje') {
 
   if (subjectChart) subjectChart.destroy();
 
-  const ctx = document.getElementById('subjectChart').getContext('2d');
-  subjectChart = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels,
-      datasets: [{
-        data,
-        backgroundColor: colors,
-        borderWidth: 0
-      }]
-    },
-    options: {
-      plugins: {
-        legend: { position: 'bottom', labels: { color: '#f1f5f9', padding: 15 } }
+  const ctx = document.getElementById('subjectChart');
+  if (labels.length === 0) {
+    ctx.style.display = 'none';
+  } else {
+    ctx.style.display = 'block';
+    subjectChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels,
+        datasets: [{ data, backgroundColor: colors, borderWidth: 0 }]
       },
-      cutout: '65%'
-    }
-  });
+      options: {
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#f8fafc', padding: 12, font: { size: 12 } } }
+        },
+        cutout: '68%'
+      }
+    });
+  }
 
   renderRecentSessions();
 }
 
 function renderRecentSessions() {
   const container = document.getElementById('recent-sessions');
-  const recent = [...state.sessions].reverse().slice(0, 8);
+  const recent = [...state.sessions].reverse().slice(0, 6);
 
   if (recent.length === 0) {
-    container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:1rem">Nenhuma sessão ainda</p>';
+    container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:1rem 0">Nenhuma sessão ainda</p>';
     return;
   }
 
@@ -272,9 +270,9 @@ function renderRecentSessions() {
         <div>
           <span class="subject-dot" style="background:${sub.color}"></span>
           <strong>${sub.name}</strong>
-          ${s.notes ? `<div style="font-size:0.85rem; color:var(--text-muted)">${s.notes}</div>` : ''}
+          ${s.notes ? `<div style="font-size:0.82rem; color:var(--text-muted); margin-top:2px">${s.notes}</div>` : ''}
         </div>
-        <div style="text-align:right">
+        <div style="text-align:right; font-size:0.9rem">
           <div>${formatMinutes(s.minutes)}</div>
           <div style="font-size:0.75rem; color:var(--text-muted)">${date.toLocaleDateString('pt-BR')}</div>
         </div>
@@ -287,7 +285,7 @@ function renderRecentSessions() {
 function updateTimerDisplay() {
   const mins = Math.floor(state.pomodoro.timeLeft / 60);
   const secs = state.pomodoro.timeLeft % 60;
-  document.getElementById('timer-display').textContent = 
+  document.getElementById('timer-display').textContent =
     `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
 }
 
@@ -307,6 +305,7 @@ function startPomodoro() {
   state.pomodoro.isRunning = true;
   document.getElementById('btn-start').disabled = true;
   document.getElementById('btn-pause').disabled = false;
+  document.getElementById('mode-label').textContent = state.pomodoro.isBreak ? 'Pausa' : 'Foco';
 
   state.pomodoro.interval = setInterval(() => {
     state.pomodoro.timeLeft--;
@@ -336,11 +335,11 @@ function resetPomodoro() {
   document.getElementById('btn-start').disabled = false;
   document.getElementById('btn-pause').disabled = true;
   document.getElementById('current-subject').textContent = 'Selecione uma matéria';
+  document.getElementById('mode-label').textContent = 'Foco';
 }
 
 function pomodoroFinished() {
   if (!state.pomodoro.isBreak) {
-    // Salva sessão de foco
     const minutes = parseInt(document.getElementById('focus-time').value) || 25;
     if (state.pomodoro.currentSubject) {
       state.sessions.push({
@@ -354,30 +353,27 @@ function pomodoroFinished() {
       save();
     }
 
-    // Conta pomodoros de hoje
     const today = getDateKey();
-    const todayPomodoros = state.sessions.filter(s => 
-      s.notes === 'Pomodoro' && getDateKey(new Date(s.date)) === today
-    ).length;
-    document.getElementById('pomodoros-hoje').textContent = todayPomodoros;
+    const count = state.sessions.filter(s => s.notes === 'Pomodoro' && getDateKey(new Date(s.date)) === today).length;
+    document.getElementById('pomodoros-hoje').textContent = count;
 
-    // Inicia pausa
     state.pomodoro.isBreak = true;
     const breakMin = parseInt(document.getElementById('break-time').value) || 5;
     state.pomodoro.timeLeft = breakMin * 60;
     document.getElementById('current-subject').textContent = 'Pausa!';
+    document.getElementById('mode-label').textContent = 'Pausa';
     alert('Pomodoro concluído! Hora da pausa.');
     startPomodoro();
   } else {
-    // Fim da pausa
     state.pomodoro.isBreak = false;
     const focus = parseInt(document.getElementById('focus-time').value) || 25;
     state.pomodoro.timeLeft = focus * 60;
     document.getElementById('current-subject').textContent = 'Pronto pra mais um?';
+    document.getElementById('mode-label').textContent = 'Foco';
     state.pomodoro.isRunning = false;
     document.getElementById('btn-start').disabled = false;
     document.getElementById('btn-pause').disabled = true;
-    alert('Pausa acabou! Bora estudar.');
+    alert('Pausa acabou!');
     updateTimerDisplay();
   }
   renderDashboard();
@@ -394,21 +390,16 @@ document.getElementById('focus-time').addEventListener('change', () => {
   }
 });
 
-// Init
 function init() {
   renderSubjects();
   loadGoals();
   renderDashboard('hoje');
   updateTimerDisplay();
 
-  // Conta pomodoros de hoje
   const today = getDateKey();
-  const todayPomodoros = state.sessions.filter(s => 
-    s.notes === 'Pomodoro' && getDateKey(new Date(s.date)) === today
-  ).length;
-  document.getElementById('pomodoros-hoje').textContent = todayPomodoros;
+  const count = state.sessions.filter(s => s.notes === 'Pomodoro' && getDateKey(new Date(s.date)) === today).length;
+  document.getElementById('pomodoros-hoje').textContent = count;
 
-  // Service Worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('service-worker.js').catch(() => {});
   }

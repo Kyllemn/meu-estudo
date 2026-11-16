@@ -10,23 +10,37 @@
 </head>
 <body>
   <div id="app">
-    <!-- Header -->
     <header>
-      <h1>Meu Estudo</h1>
-      <button id="btn-settings" class="icon-btn">⚙️</button>
+      <div class="header-left">
+        <span class="logo">📚</span>
+        <h1>Meu Estudo</h1>
+      </div>
     </header>
 
-    <!-- Navegação principal -->
     <nav class="main-nav">
-      <button class="nav-btn active" data-tab="dashboard">Dashboard</button>
-      <button class="nav-btn" data-tab="pomodoro">Pomodoro</button>
-      <button class="nav-btn" data-tab="registrar">Registrar</button>
-      <button class="nav-btn" data-tab="metas">Metas</button>
-      <button class="nav-btn" data-tab="materias">Matérias</button>
+      <button class="nav-btn active" data-tab="dashboard">
+        <span class="nav-icon">📊</span>
+        <span>Dashboard</span>
+      </button>
+      <button class="nav-btn" data-tab="pomodoro">
+        <span class="nav-icon">⏱️</span>
+        <span>Pomodoro</span>
+      </button>
+      <button class="nav-btn" data-tab="registrar">
+        <span class="nav-icon">➕</span>
+        <span>Registrar</span>
+      </button>
+      <button class="nav-btn" data-tab="metas">
+        <span class="nav-icon">🎯</span>
+        <span>Metas</span>
+      </button>
+      <button class="nav-btn" data-tab="materias">
+        <span class="nav-icon">📖</span>
+        <span>Matérias</span>
+      </button>
     </nav>
 
-    <!-- Conteúdo das abas -->
-    <main id="content">
+    <main>
       <!-- Dashboard -->
       <section id="dashboard" class="tab active">
         <div class="period-selector">
@@ -35,14 +49,14 @@
           <button class="period-btn" data-period="mes">Mês</button>
         </div>
 
-        <div class="progress-cards" id="progress-cards"></div>
+        <div id="progress-cards"></div>
 
-        <div class="chart-container">
+        <div class="card">
           <h3>Tempo por Matéria</h3>
           <canvas id="subjectChart"></canvas>
         </div>
 
-        <div class="sessions-list">
+        <div class="card">
           <h3>Últimas sessões</h3>
           <div id="recent-sessions"></div>
         </div>
@@ -50,39 +64,49 @@
 
       <!-- Pomodoro -->
       <section id="pomodoro" class="tab">
-        <div class="pomodoro-container">
+        <div class="pomodoro-screen">
+          <div class="mode-label" id="mode-label">Foco</div>
           <div class="timer-display" id="timer-display">25:00</div>
           <div class="current-subject" id="current-subject">Selecione uma matéria</div>
-          
-          <select id="pomodoro-subject" class="big-select"></select>
-          
-          <div class="pomodoro-controls">
-            <button id="btn-start" class="big-btn primary">Iniciar</button>
-            <button id="btn-pause" class="big-btn" disabled>Pausar</button>
-            <button id="btn-reset" class="big-btn">Reset</button>
+
+          <button id="btn-start" class="btn-primary big">Iniciar</button>
+
+          <div class="control-row">
+            <button id="btn-pause" class="btn-secondary" disabled>Pausar</button>
+            <button id="btn-reset" class="btn-secondary">Reset</button>
           </div>
 
-          <div class="pomodoro-settings">
-            <label>Foco (min): <input type="number" id="focus-time" value="25" min="1" max="120"></label>
-            <label>Pausa (min): <input type="number" id="break-time" value="5" min="1" max="30"></label>
+          <div class="card settings-card">
+            <label>Matéria</label>
+            <select id="pomodoro-subject"></select>
+
+            <div class="two-cols">
+              <div>
+                <label>Foco (min)</label>
+                <input type="number" id="focus-time" value="25" min="1" max="120">
+              </div>
+              <div>
+                <label>Pausa (min)</label>
+                <input type="number" id="break-time" value="5" min="1" max="30">
+              </div>
+            </div>
           </div>
 
-          <div class="pomodoro-stats">
-            Pomodoros hoje: <strong id="pomodoros-hoje">0</strong>
-          </div>
+          <p class="pomodoro-count">Pomodoros hoje: <strong id="pomodoros-hoje">0</strong></p>
         </div>
       </section>
 
-      <!-- Registrar manualmente -->
+      <!-- Registrar -->
       <section id="registrar" class="tab">
-        <form id="session-form" class="form">
+        <form id="session-form" class="card form">
+          <h3>Registrar sessão</h3>
           <label>Matéria</label>
           <select id="session-subject" required></select>
 
           <label>Tempo (minutos)</label>
           <input type="number" id="session-minutes" min="1" required placeholder="Ex: 45">
 
-          <label>O que você estudou? (opcional)</label>
+          <label>O que você estudou?</label>
           <textarea id="session-notes" placeholder="Resumo rápido..."></textarea>
 
           <label>Como foi?</label>
@@ -92,39 +116,40 @@
             <option value="ruim">😞 Ruim</option>
           </select>
 
-          <button type="submit" class="big-btn primary">Salvar sessão</button>
+          <button type="submit" class="btn-primary">Salvar sessão</button>
         </form>
       </section>
 
       <!-- Metas -->
       <section id="metas" class="tab">
-        <form id="goals-form" class="form">
-          <h3>Metas de tempo (em minutos)</h3>
-          
+        <form id="goals-form" class="card form">
+          <h3>Metas de tempo</h3>
+          <p class="hint">Em minutos</p>
+
           <label>Meta Diária</label>
-          <input type="number" id="goal-daily" min="0" placeholder="Ex: 120">
+          <input type="number" id="goal-daily" min="0" placeholder="120">
 
           <label>Meta Semanal</label>
-          <input type="number" id="goal-weekly" min="0" placeholder="Ex: 600">
+          <input type="number" id="goal-weekly" min="0" placeholder="600">
 
           <label>Meta Mensal</label>
-          <input type="number" id="goal-monthly" min="0" placeholder="Ex: 2400">
+          <input type="number" id="goal-monthly" min="0" placeholder="2400">
 
-          <button type="submit" class="big-btn primary">Salvar metas</button>
+          <button type="submit" class="btn-primary">Salvar metas</button>
         </form>
       </section>
 
       <!-- Matérias -->
       <section id="materias" class="tab">
-        <form id="subject-form" class="form">
-          <label>Nova matéria</label>
-          <input type="text" id="subject-name" required placeholder="Ex: Matemática">
+        <form id="subject-form" class="card form">
+          <h3>Nova matéria</h3>
+          <input type="text" id="subject-name" required placeholder="Nome da matéria">
           <label>Cor</label>
           <input type="color" id="subject-color" value="#6366f1">
-          <button type="submit" class="big-btn primary">Adicionar</button>
+          <button type="submit" class="btn-primary">Adicionar</button>
         </form>
 
-        <div id="subjects-list" class="subjects-list"></div>
+        <div id="subjects-list"></div>
       </section>
     </main>
   </div>
